@@ -1,0 +1,3 @@
+admin,admin123,admin
+kasir1,kasir123,kasir
+manajer1,manajer123,manajer
