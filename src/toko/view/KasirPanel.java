@@ -151,25 +151,40 @@ public class KasirPanel extends JPanel {
             }
         });
 
-        JPanel btnPanel = new JPanel(new GridLayout(3, 3, 6, 6));
-        btnPanel.setBorder(BorderFactory.createTitledBorder("Aksi"));
-        JButton btnNambah      = new JButton("Nambah");
-        JButton btnUbah        = new JButton("Ubah");
-        JButton btnSimpan      = new JButton("Simpan");
-        JButton btnLihat       = new JButton("Lihat");
-        JButton btnCetak       = new JButton("Cetak Struk");
-        JButton btnHapusItem   = new JButton("Hapus Item");
-        JButton btnLihatStok   = new JButton("Lihat Stok");
-        JButton btnLapHarian   = new JButton("Laporan Harian");
-        JButton btnDummy       = new JButton(""); // placeholder
-        btnDummy.setEnabled(false);
-        btnDummy.setVisible(false);
-        for (JButton btn : new JButton[]{btnNambah, btnUbah, btnSimpan, btnLihat, btnCetak, btnHapusItem, btnLihatStok, btnLapHarian, btnDummy}) {
-            btn.setPreferredSize(new Dimension(100, 32)); btnPanel.add(btn);
+        String role = currentUser.getStatus().toLowerCase();
+        JPanel btnPanel;
+        JButton btnNambah    = new JButton("Nambah");
+        JButton btnUbah      = new JButton("Ubah");
+        JButton btnSimpan    = new JButton("Simpan");
+        JButton btnLihat     = new JButton("Lihat");
+        JButton btnCetak     = new JButton("Cetak Struk");
+        JButton btnHapusItem = new JButton("Hapus Item");
+        JButton btnLihatStok = new JButton("Lihat Stok");
+        JButton btnLapHarian = new JButton("Laporan Harian");
+
+        if (role.equals("kasir")) {
+            // Kasir: 8 tombol termasuk Lihat Stok & Laporan Harian, layout 3x3
+            btnPanel = new JPanel(new GridLayout(3, 3, 6, 6));
+            btnPanel.setBorder(BorderFactory.createTitledBorder("Aksi"));
+            btnLihatStok.setBackground(new Color(200, 230, 255));
+            btnLapHarian.setBackground(new Color(200, 255, 210));
+            JButton btnDummy = new JButton("");
+            btnDummy.setEnabled(false);
+            btnDummy.setOpaque(false);
+            btnDummy.setBorderPainted(false);
+            for (JButton btn : new JButton[]{btnNambah, btnUbah, btnSimpan, btnLihat, btnCetak, btnHapusItem, btnLihatStok, btnLapHarian, btnDummy}) {
+                btn.setPreferredSize(new Dimension(100, 32));
+                btnPanel.add(btn);
+            }
+        } else {
+            // Admin / Manajer: 6 tombol saja (sudah punya tab Stok & Laporan sendiri), layout 2x3
+            btnPanel = new JPanel(new GridLayout(2, 3, 6, 6));
+            btnPanel.setBorder(BorderFactory.createTitledBorder("Aksi"));
+            for (JButton btn : new JButton[]{btnNambah, btnUbah, btnSimpan, btnLihat, btnCetak, btnHapusItem}) {
+                btn.setPreferredSize(new Dimension(120, 32));
+                btnPanel.add(btn);
+            }
         }
-        // Warna khusus tombol baru agar mudah dibedakan
-        btnLihatStok.setBackground(new Color(200, 230, 255));
-        btnLapHarian.setBackground(new Color(200, 255, 210));
 
         bottomPanel.add(summaryPanel, BorderLayout.CENTER);
         bottomPanel.add(btnPanel, BorderLayout.EAST);

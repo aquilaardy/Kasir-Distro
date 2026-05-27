@@ -1,9 +1,8 @@
 package toko.view;
 
-import toko.model.User;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
+import toko.model.User;
 
 public class MainFrame extends JFrame {
 
@@ -16,7 +15,7 @@ public class MainFrame extends JFrame {
         this.currentUser = user;
         setTitle("Aplikasi Toko - [" + user.getUsername() + " | " + user.getStatus().toUpperCase() + "]");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(900, 620));
+        setMinimumSize(new Dimension(1000, 650));
         initComponents();
         setLocationRelativeTo(null);
     }
@@ -63,6 +62,17 @@ public class MainFrame extends JFrame {
             tabbedPane.addTab("Laporan",     new LaporanPanel());
         } else { // kasir
             tabbedPane.addTab("Kasir",       new KasirPanel(currentUser));
+        }
+
+        if (tabbedPane.getTabCount() == 1){
+            tabbedPane.setTabLayoutPolicy(JTabbedPane.WRAP_TAB_LAYOUT);
+            UIManager.put("TabbedPane.tabAreaInsets", new Insets(0,0,0,0));
+            tabbedPane.setUI(new javax.swing.plaf.basic.BasicTabbedPaneUI(){
+                @Override
+                protected int calculateTabAreaHeight(int placement, int runCount, int maxTabHeight){
+                    return 0;
+                }
+            });
         }
 
         // Status bar
