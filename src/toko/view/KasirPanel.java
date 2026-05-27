@@ -151,17 +151,25 @@ public class KasirPanel extends JPanel {
             }
         });
 
-        JPanel btnPanel = new JPanel(new GridLayout(2, 3, 6, 6));
+        JPanel btnPanel = new JPanel(new GridLayout(3, 3, 6, 6));
         btnPanel.setBorder(BorderFactory.createTitledBorder("Aksi"));
-        JButton btnNambah    = new JButton("Nambah");
-        JButton btnUbah      = new JButton("Ubah");
-        JButton btnSimpan    = new JButton("Simpan");
-        JButton btnLihat     = new JButton("Lihat");
-        JButton btnCetak     = new JButton("Cetak Struk");
-        JButton btnHapusItem = new JButton("Hapus Item");
-        for (JButton btn : new JButton[]{btnNambah, btnUbah, btnSimpan, btnLihat, btnCetak, btnHapusItem}) {
+        JButton btnNambah      = new JButton("Nambah");
+        JButton btnUbah        = new JButton("Ubah");
+        JButton btnSimpan      = new JButton("Simpan");
+        JButton btnLihat       = new JButton("Lihat");
+        JButton btnCetak       = new JButton("Cetak Struk");
+        JButton btnHapusItem   = new JButton("Hapus Item");
+        JButton btnLihatStok   = new JButton("Lihat Stok");
+        JButton btnLapHarian   = new JButton("Laporan Harian");
+        JButton btnDummy       = new JButton(""); // placeholder
+        btnDummy.setEnabled(false);
+        btnDummy.setVisible(false);
+        for (JButton btn : new JButton[]{btnNambah, btnUbah, btnSimpan, btnLihat, btnCetak, btnHapusItem, btnLihatStok, btnLapHarian, btnDummy}) {
             btn.setPreferredSize(new Dimension(100, 32)); btnPanel.add(btn);
         }
+        // Warna khusus tombol baru agar mudah dibedakan
+        btnLihatStok.setBackground(new Color(200, 230, 255));
+        btnLapHarian.setBackground(new Color(200, 255, 210));
 
         bottomPanel.add(summaryPanel, BorderLayout.CENTER);
         bottomPanel.add(btnPanel, BorderLayout.EAST);
@@ -175,6 +183,8 @@ public class KasirPanel extends JPanel {
         btnLihat.addActionListener(e -> lihatTransaksi());
         btnCetak.addActionListener(e -> cetakStruk());
         btnHapusItem.addActionListener(e -> hapusItem());
+        btnLihatStok.addActionListener(e -> lihatStokBarang());
+        btnLapHarian.addActionListener(e -> cetakLaporanHarian());
     }
 
     private void addSummaryRow(JPanel p, GridBagConstraints gbc, String label, JComponent comp, int row) {
@@ -385,6 +395,222 @@ public class KasirPanel extends JPanel {
         keranjang.add(new ItemTransaksi(noTransaksi, barang.getKodeBarang(),
             barang.getNamaBarang(), barang.getHargaJual(), 1));
         refreshKeranjang();
+    }
+
+    /**
+     * Lihat stok barang (read-only, kasir tidak bisa tambah/ubah/hapus)
+     */
+    private void lihatStokBarang() {
+        List<toko.model.Barang> listBarang = FileHelper.loadBarang();
+        if (listBarang.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Tidak ada data stok barang!", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String[] cols = {"Kode", "Nama Barang", "Harga Jual", "Stok"};
+        DefaultTableModel m = new DefaultTableModel(cols, 0) {
+            private static final long serialVersionUID = 1L;
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        for (toko.model.Barang b : listBarang) {
+            m.addRow(new Object[]{
+                b.getKodeBarang(),
+                b.getNamaBarang(),
+                CurrencyFormatter.format(b.getHargaJual()),
+                b.getJumlah()
+            });
+        }
+
+        JTable tblStok = new JTable(m);
+        tblStok.setRowHeight(22);
+        tblStok.getColumnModel().getColumn(0).setPreferredWidth(80);
+        tblStok.getColumnModel().getColumn(1).setPreferredWidth(200);
+        tblStok.getColumnModel().getColumn(2).setPreferredWidth(110);
+        tblStok.getColumnModel().getColumn(3).setPreferredWidth(60);
+        tblStok.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // Warna baris merah jika stok <= 5 sebagai peringatan
+        tblStok.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                Object stokObj = table.getModel().getValueAt(row, 3);
+                int stok = 0;
+                try { stok = Integer.parseInt(stokObj.toString()); } catch (Exception ignored) {}
+                if (!isSelected) {
+                    if (stok == 0) setBackground(new Color(255, 200, 200));       // merah = habis
+                    else if (stok <= 5) setBackground(new Color(255, 240, 180));  // kuning = hampir habis
+                    else setBackground(Color.WHITE);
+                }
+                return this;
+            }
+        });
+
+        JScrollPane sp = new JScrollPane(tblStok);
+        sp.setPreferredSize(new Dimension(500, 350));
+
+        // Panel keterangan warna
+        JPanel keteranganPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        JLabel lblHabis = new JLabel("  Stok Habis  ");
+        lblHabis.setOpaque(true); lblHabis.setBackground(new Color(255, 200, 200));
+        JLabel lblHampir = new JLabel("  Stok <= 5  ");
+        lblHampir.setOpaque(true); lblHampir.setBackground(new Color(255, 240, 180));
+        keteranganPanel.add(new JLabel("Keterangan:"));
+        keteranganPanel.add(lblHabis);
+        keteranganPanel.add(lblHampir);
+
+        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        panel.add(new JLabel("  Total: " + listBarang.size() + " jenis barang  "), BorderLayout.NORTH);
+        panel.add(sp, BorderLayout.CENTER);
+        panel.add(keteranganPanel, BorderLayout.SOUTH);
+
+        JOptionPane.showMessageDialog(this, panel, "Stok Barang (Read Only)", JOptionPane.PLAIN_MESSAGE);
+    }
+
+    /**
+     * Cetak laporan harian — hanya transaksi hari ini
+     */
+    private void cetakLaporanHarian() {
+        String hariIni = java.time.LocalDate.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+        List<Transaksi> semuaTrx = FileHelper.loadTransaksi();
+        List<Transaksi> harian = new ArrayList<>();
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        for (Transaksi trx : semuaTrx) {
+            String tglTrx = trx.getWaktu().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            if (tglTrx.equals(hariIni)) {
+                harian.add(trx);
+            }
+        }
+
+        if (harian.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Tidak ada transaksi hari ini (" + hariIni + ")",
+                "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Buat tabel laporan
+        String[] cols = {"No Trx", "Jam", "Kasir", "Total"};
+        DefaultTableModel m = new DefaultTableModel(cols, 0) {
+            private static final long serialVersionUID = 1L;
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        double grandTotal = 0;
+        for (Transaksi trx : harian) {
+            m.addRow(new Object[]{
+                trx.getNoTransaksi(),
+                trx.getWaktu().format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+                trx.getKasir(),
+                CurrencyFormatter.format(trx.getTotalBayar())
+            });
+            grandTotal += trx.getTotalBayar();
+        }
+
+        JTable tblLaporan = new JTable(m);
+        tblLaporan.setRowHeight(22);
+        tblLaporan.getColumnModel().getColumn(0).setPreferredWidth(100);
+        tblLaporan.getColumnModel().getColumn(1).setPreferredWidth(80);
+        tblLaporan.getColumnModel().getColumn(2).setPreferredWidth(100);
+        tblLaporan.getColumnModel().getColumn(3).setPreferredWidth(120);
+
+        JScrollPane sp = new JScrollPane(tblLaporan);
+        sp.setPreferredSize(new Dimension(460, 280));
+
+        // Panel ringkasan
+        JPanel ringkasanPanel = new JPanel(new GridLayout(2, 2, 8, 4));
+        ringkasanPanel.setBorder(BorderFactory.createTitledBorder("Ringkasan"));
+        ringkasanPanel.add(new JLabel("Tanggal:"));
+        ringkasanPanel.add(new JLabel(hariIni));
+        ringkasanPanel.add(new JLabel("Total Transaksi:"));
+        ringkasanPanel.add(new JLabel(harian.size() + " transaksi"));
+
+        JLabel lblGrandTotal = new JLabel(CurrencyFormatter.format(grandTotal));
+        lblGrandTotal.setFont(new Font("SansSerif", Font.BOLD, 14));
+        lblGrandTotal.setForeground(new Color(0, 100, 0));
+        ringkasanPanel.add(new JLabel("Grand Total:"));
+        ringkasanPanel.add(lblGrandTotal);
+
+        // Buat salinan final agar bisa dipakai di lambda
+        final List<Transaksi> harianFinal    = harian;
+        final String hariIniFinal            = hariIni;
+        final double grandTotalFinal         = grandTotal;
+
+        // Tombol cetak ke teks
+        JButton btnCetakTeks = new JButton("Cetak ke File Teks");
+        btnCetakTeks.addActionListener(ev -> cetakLaporanHarianKeTeks(harianFinal, hariIniFinal, grandTotalFinal));
+
+        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        panel.add(new JLabel("  Laporan Harian - " + hariIniFinal + "  "), BorderLayout.NORTH);
+        panel.add(sp, BorderLayout.CENTER);
+        panel.add(ringkasanPanel, BorderLayout.SOUTH);
+
+        Object[] options = {"Cetak ke File Teks", "Tutup"};
+        int pilihan = JOptionPane.showOptionDialog(this, panel,
+            "Laporan Harian - " + hariIniFinal,
+            JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
+            null, options, options[1]);
+
+        if (pilihan == 0) {
+            cetakLaporanHarianKeTeks(harianFinal, hariIniFinal, grandTotalFinal);
+        }
+    }
+
+    /**
+     * Ekspor laporan harian ke file teks
+     */
+    private void cetakLaporanHarianKeTeks(List<Transaksi> harian, String tanggal, double grandTotal) {
+        JFileChooser fc = new JFileChooser();
+        fc.setSelectedFile(new java.io.File("LaporanHarian_" +
+            tanggal.replace("/", "-") + ".txt"));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(fc.getSelectedFile()))) {
+            pw.println("=".repeat(55));
+            pw.println(centerStr(NAMA_TOKO, 55));
+            pw.println(centerStr(ALAMAT, 55));
+            pw.println(centerStr("Telp: " + TELP, 55));
+            pw.println("=".repeat(55));
+            pw.println(centerStr("LAPORAN HARIAN", 55));
+            pw.println(centerStr("Tanggal: " + tanggal, 55));
+            pw.println("=".repeat(55));
+            pw.printf("%-15s %-8s %-10s %18s%n", "No Transaksi", "Jam", "Kasir", "Total");
+            pw.println("-".repeat(55));
+
+            DateTimeFormatter fmtJam = DateTimeFormatter.ofPattern("HH:mm:ss");
+            for (Transaksi trx : harian) {
+                pw.printf("%-15s %-8s %-10s %18s%n",
+                    trx.getNoTransaksi(),
+                    trx.getWaktu().format(fmtJam),
+                    trx.getKasir(),
+                    CurrencyFormatter.formatPlain(trx.getTotalBayar()));
+            }
+
+            pw.println("=".repeat(55));
+            pw.printf("%-34s %18s%n", "Total Transaksi: " + harian.size(), "");
+            pw.printf("%-34s %18s%n", "Grand Total:", CurrencyFormatter.formatPlain(grandTotal));
+            pw.println("=".repeat(55));
+
+            JOptionPane.showMessageDialog(this,
+                "Laporan berhasil disimpan:\n" + fc.getSelectedFile().getAbsolutePath(),
+                "Sukses", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (java.io.IOException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Gagal menyimpan: " + ex.getMessage(),
+                "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String centerStr(String text, int width) {
+        if (text.length() >= width) return text;
+        int pad = (width - text.length()) / 2;
+        return " ".repeat(pad) + text;
     }
 
     private void editInfoToko(JLabel lblNamaToko) {
