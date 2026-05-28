@@ -8,6 +8,7 @@ public class Main {
         // Gunakan Look and Feel default sistem
         try {
             UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+            // UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
             // Fallback ke default Swing
         }
